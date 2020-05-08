@@ -1,6 +1,8 @@
 package application;
 	
 
+import java.net.Socket;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -12,14 +14,24 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import network.ReadThread;
+import network.WriteThread;
 
 
 public class Main extends Application {
 	private String name = "";
 	
+	private Socket socket;
 	@Override
 	public void start(Stage primaryStage) {
 		try {
+			//Start the network connection to the server
+			
+			//get the text from the input stream and assign it to chat text.
+			socket = new Socket("192.168.0.20",4444);
+			System.out.println("Connection successful");
+			
+			
 			VBox root = new VBox();
 			Scene scene = new Scene(root,800,800);
 			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
@@ -30,6 +42,7 @@ public class Main extends Application {
 			chat.setWrapText(true);
 			chat.setEditable(false);
 						
+			new ReadThread(socket, chat).start();
 			
 			root.getChildren().addAll(clabel,chat, buildInputArea(chat));
 			primaryStage.setTitle("This is a test");
@@ -45,7 +58,7 @@ public class Main extends Application {
                 Button btn = new Button("Set Name");
                 btn.setOnAction(l->{
                 	this.name = inpt.getText();
-                	chat.setText("Welcome to McCoygleChat " + name);
+                	chat.setText("Welcome to McCoygleChat " + name + "\n");
                 	dialog.close();
                 });
                 
@@ -70,10 +83,12 @@ public class Main extends Application {
 		Button btnSend = new Button("Send");
 		btnSend.setOnAction( k -> {
 			StringBuilder output = new StringBuilder();
-			chat.appendText("\n");
-			output.append("[").append(name).append("] :  ").append(txtField.getText());
+			output.append("[").append(name).append("] :  ").append(txtField.getText()).append("\n");
+			new WriteThread(socket,  name).run(output.toString());
 			chat.appendText(output.toString());
 			txtField.setText("");
+			
+			
 			Platform.runLater(()->{
 				txtField.requestFocus();
 			});
@@ -85,14 +100,6 @@ public class Main extends Application {
 		return hbox;
 		
 	}
-	
-	private HBox testingArea(TextArea chat)
-	{
-		HBox hbox = new HBox();
-		
-		
-		return hbox;
-	}	
 	
 	public static void main(String[] args) {
 		launch(args);
